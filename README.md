@@ -18,3 +18,5 @@ myfile.hs
 main = putStrLn "Hello, World!"
 [myarchive.zip]:/$ vim §myfile.hs
 ```
+
+**NOTE:** Empty Directories inside archives are not supported, since Haskell's `zip` library, which this project uses, does not support them either 
