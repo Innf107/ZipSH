@@ -4,16 +4,16 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 45f9db312d637cde67ff7c96ad49223311fecba67e4ce2ca0316e8f6e4af92cd
+-- hash: 0536ea6c7bcd60b293fc4f8e7a049847762a79aeb8d38f9336e428893682bedd
 
 name:           ZipSH
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/Github username here/ZipSH#readme>
-homepage:       https://github.com/Github username here/ZipSH#readme
-bug-reports:    https://github.com/Github username here/ZipSH/issues
-author:         Author name here
-maintainer:     Author email here
-copyright:      2019 Author name here
+description:    Please see the README on GitHub at <https://github.com/Innf107/ZipSH#readme>
+homepage:       https://github.com/Innf107/ZipSH#readme
+bug-reports:    https://github.com/Innf107/ZipSH/issues
+author:         Prophet
+maintainer:     innf107@gmail.com
+copyright:      2020 Prophet
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -23,7 +23,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/Github username here/ZipSH
+  location: https://github.com/Innf107/ZipSH
 
 library
   exposed-modules:
@@ -45,7 +45,7 @@ library
     , zip
   default-language: Haskell2010
 
-executable ZipSH-exe
+executable zipsh
   main-is: Main.hs
   other-modules:
       Types

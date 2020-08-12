@@ -30,7 +30,6 @@ main = do
     else do
         let fname = head args
         f <- (\x -> if x then withArchive else createArchive) <$> doesFileExist fname
-        doesFileExist "~/.zipSHHistory" >>= (\x -> when (not x) $ void $ system "touch ~/.zipSHHistory")
         f fname (execStateT (repl fname) defaultState)
         return ()
 
@@ -38,7 +37,8 @@ main = do
 repl :: String -> Repl ()
 repl fname = do
     pwd <- statePath
-    cmd <- liftIO $ runInputT defaultSettings {historyFile = Just "~/.zipSHHistory"} $ getCmd fname (pathToStr pwd)
+    historyFile <- liftIO $ (++ "/.zipSHHistory") <$> getHomeDirectory
+    cmd <- liftIO $ runInputT defaultSettings {historyFile = Just historyFile} $ getCmd fname (pathToStr pwd)
     case cmd of
         "exit" -> return ()
         _ -> do
@@ -148,7 +148,7 @@ cd p = do
         return True
     else
         return False
-    
+
 
 pwd :: Repl Path
 pwd = statePath
