@@ -20,6 +20,7 @@ import Types
 import System.Process as P
 import Data.Bifunctor
 import System.IO
+import AnsiEscapeCodes as A
 
 
 main :: IO ()
@@ -46,7 +47,7 @@ repl fname = do
             repl fname
 
 getCmd :: String -> String -> InputT IO String
-getCmd zipName pwd = withInterrupt (fmap (fromMaybe "exit") $ getInputLine $ printf "[%s]:%s/$ " zipName pwd) `catch` (\Interrupt -> return "")
+getCmd zipName pwd = withInterrupt (fmap (fromMaybe "exit") $ getInputLine $ printf "\x001b[32;1m[%s]\x001b[0m:\x001b[34;1m%s/\x001b[0m$ " zipName pwd) `catch` (\Interrupt -> return "")
 
 runCmd :: String -> Repl ()
 runCmd cmd = do

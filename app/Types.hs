@@ -1,3 +1,5 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module Types where
 
 import Control.Monad.State
@@ -5,7 +7,10 @@ import Codec.Archive.Zip
 import Data.Maybe
 import Data.List
 import Data.List.Split
-
+import qualified Data.Map as M
+import Lib
+import Data.Either as E
+import Data.Bifunctor
 
 type Repl a = StateT ReplState ZipArchive a
 
@@ -76,3 +81,107 @@ entriesFromPath :: Path -> [Entry]
 entriesFromPath (Path [])     = []
 entriesFromPath (Path [x])    = [File (Path [x])]
 entriesFromPath (Path (x:xs)) = Directory (Path [x]) : (map (mapEntry (mapPath (x:))) $ entriesFromPath (Path xs))
+
+
+
+
+--                                 Flag Arg Counts
+data Syntax = Syntax [SyntaxPart] [(String, Int)] ([Flag] -> [(String, Arg)] -> Repl ()) 
+
+instance Show Syntax where
+    show = showSyntax
+
+data SyntaxPart = SRequired SyntaxArg 
+                | SOptional SyntaxArg 
+                deriving (Show, Eq)
+            
+data SyntaxArg = SLit String
+               | SArg String
+               | SFlags
+               | SFlag String
+               deriving (Show, Eq)
+
+type Arg = String
+data Flag = Flag String [Arg]
+          deriving (Show, Eq) 
+
+data Command = Command {cmdInfo::String, cmdSyntax::[Syntax]} 
+    
+--TODO: include function name
+instance Show Command where
+    show (Command info syntax) = "usage: " ++ showSyntaxs syntax ++ "\n\n" ++ info
+
+ls' = Command {
+        cmdInfo="lists the contents of a directory",
+        cmdSyntax = [
+            Syntax [SRequired (SLit "ls"), SOptional (SFlags), SOptional (SArg "directory")] [("r", 0)] (\_ _ -> return ())
+        ]
+    }
+    
+testC = Command {
+        cmdInfo="test",
+        cmdSyntax = [
+            Syntax [SRequired (SLit "Test")] [] (\_ _ -> return ())
+        ]
+    }
+
+command :: Command -> [String] -> Repl ()
+command (cmd@(Command {cmdInfo, cmdSyntax})) args = head $ (catMaybes $ map (`trySyntax`args) (cmdSyntax)) ++ [help cmd]
+    where
+        help = liftIO . putStrLn . show
+
+trySyntax :: Syntax -> [String] -> Maybe (Repl ())
+trySyntax (Syntax parts flagCounts f) args = do
+        argsFlags <- parseArgs flagCounts args
+        (flags, args) <- tryParts parts argsFlags
+        return $ f flags args
+        
+tryParts :: [SyntaxPart] -> [Either Arg Flag] -> Maybe ([Flag], [(String, Arg)])
+tryParts [] [] = Just ([], [])
+tryParts [] _ = Nothing
+tryParts _ [] = Nothing
+tryParts (p:ps) (a:as) = case p of
+    SOptional x ->           undefined
+    SRequired (SLit x) -> case a of
+        Right _ -> Nothing
+        Left y -> guard (x == y) >> tryParts ps as
+    SRequired (SArg x) -> case a of
+        Right _ -> Nothing
+        Left y -> second ((x,y):) <$> tryParts ps as
+    SRequired (SFlags) ->    undefined
+    SRequired (SFlag f) ->   case a of
+        Left _ -> Nothing
+        Right flag@(Flag y _) -> guard (f==y) >> first (flag:) <$> tryParts ps as  
+
+
+parseArgs :: ([(String, Int)]) -> [String] -> Maybe [Either Arg Flag]
+parseArgs _ [] = Just []
+parseArgs validFlags (a:as) = case a of
+                ('-':'-':a') -> do
+                        (argCount, validFlags') <- lookupR a' validFlags
+                        guard (length as >= argCount)
+                        let (fas, as') = splitAt argCount as
+                        flagArgs <- E.lefts <$> parseArgs [] fas
+                        ((Right (Flag a' flagArgs)):) <$> parseArgs validFlags' as'
+                ('-':a') -> parseArgs validFlags (map (("--"++) . pure) a' ++ as)
+                a' -> ((Left a'):) <$> parseArgs validFlags as             
+
+showSyntaxs :: [Syntax] -> String
+showSyntaxs ss = intercalate " | " (map showSyntax ss)
+
+showSyntax :: Syntax -> String
+showSyntax (Syntax parts _ _) = unwords (map showSPart parts)
+
+showSPart :: SyntaxPart -> String
+showSPart (SRequired (SLit x)) = x
+showSPart (SRequired x) = "<" ++ showSArg x ++ ">"
+showSPart (SOptional x) = "[" ++ showSArg x ++ "]"
+
+showSArg :: SyntaxArg -> String
+showSArg (SLit x) = x
+showSArg (SArg x) = x
+showSArg (SFlags) = "flags"
+showSArg (SFlag x) = "--" ++ x
+
+-- ls --block-size 3
+-- ls --block-size 3

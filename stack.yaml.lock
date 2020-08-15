@@ -3,7 +3,14 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: ansi-escape-codes-0.3.0.0@sha256:b4d9e1be5b400772a8f833fc3f3af6624d34878e40dab19b474110fc0756df02,629
+    pantry-tree:
+      size: 324
+      sha256: b3987ccfe3d860a6fc72f998d22a37c714eebacbc0a1b6e1d94d955f6a58199d
+  original:
+    hackage: ansi-escape-codes-0.3.0.0@sha256:b4d9e1be5b400772a8f833fc3f3af6624d34878e40dab19b474110fc0756df02,629
 snapshots:
 - completed:
     size: 532379

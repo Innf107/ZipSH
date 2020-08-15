@@ -38,6 +38,4 @@
 * `compress`
     - syntax: `compress <filename> [None | Store | Deflate | BZip2]`
 * shell integration for custom commands
-* color
-* Change `repl`'s type to `String -> InputT (StateT ReplState ZipArchive) ()` 
-  to allow more direct  
+* auto-extraction (`§`) for directories

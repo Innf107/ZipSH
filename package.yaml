@@ -30,6 +30,7 @@ dependencies:
 - split
 - utf8-string
 - process
+- ansi-escape-codes
 
 library:
   source-dirs: src
