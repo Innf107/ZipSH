@@ -34,7 +34,11 @@ packages:
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:
 #
-# extra-deps:
+extra-deps:
+- byline-1.0.0.0@sha256:ebfcd69a6e804979807cbd2b984ed33f6d65c4cd486c8007cde08483abead975,4991
+- terminfo-hs-0.2.1.1@sha256:c193c5333a18ad030c146c2282dd3828e670af344fbfdbcb681dbf6abd99ca1c,1629
+- haskeline-0.8.0.0@sha256:0630452b759a5b40e0e3e7ca2ef4b0d55d5161d95e8d7b0dd3cf55888971437f,5440
+
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a

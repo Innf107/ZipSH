@@ -23,13 +23,16 @@ dependencies:
 - base >= 4.7 && < 5
 - zip
 - directory
-- haskeline
 - bytestring
 - containers
 - mtl
 - split
 - utf8-string
 - process
+- ansi-terminal
+- byline
+- terminfo-hs
+- text
 
 library:
   source-dirs: src

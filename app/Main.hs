@@ -1,3 +1,5 @@
+{-#LANGUAGE OverloadedStrings#-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
 import Lib
@@ -7,7 +9,7 @@ import System.Directory
 import qualified Data.Map as M
 import Control.Monad
 import Control.Monad.IO.Class
-import System.Console.Haskeline
+import Byline
 import Data.Maybe
 import Data.Monoid
 import Data.Foldable as F
@@ -20,6 +22,10 @@ import Types
 import System.Process as P
 import Data.Bifunctor
 import System.IO
+import System.Console.ANSI
+import Control.Exception
+import qualified Data.Text as T
+
 
 
 main :: IO ()
@@ -38,15 +44,20 @@ repl :: String -> Repl ()
 repl fname = do
     pwd <- statePath
     historyFile <- liftIO $ (++ "/.zipSHHistory") <$> getHomeDirectory
-    cmd <- liftIO $ runInputT defaultSettings {historyFile = Just historyFile} $ getCmd fname (pathToStr pwd)
+    cmd <- liftIO $ (fmap (fromMaybe "exit") <$> runBylineT $ getCmd fname (pathToStr pwd)) `catch` (\(_ :: SomeException) -> return "")
     case cmd of
         "exit" -> return ()
         _ -> do
             when (not $ null $ words cmd) $ runCmd cmd
             repl fname
 
-getCmd :: String -> String -> InputT IO String
-getCmd zipName pwd = withInterrupt (fmap (fromMaybe "exit") $ getInputLine $ printf "[%s]:%s/$ " zipName pwd) `catch` (\Interrupt -> return "")
+
+getCmd :: String -> String -> BylineT IO String
+getCmd zipName pwd = T.unpack <$> askLn (
+        ((text $ T.pack $ printf "[%s]" zipName) <> fg green <> bold)
+    <> ":"
+    <> (text (T.pack $ (pwd ++ "/")) <> fg blue <> bold)
+    <> "$ ") Nothing  --fromMaybe "exit" <$> getInputLine $ printf "[%s]:%s/$ " zipName pwd
 
 runCmd :: String -> Repl ()
 runCmd cmd = do
@@ -68,16 +79,8 @@ cmds = M.fromList [
             _ -> tooManyArgs "cd"),
         ("cat", \as -> case as of
             [] -> notEnoughArgs "cat"
-            _ -> statePath >>= \p -> cat (map (joinPath p . pathFromStr) as) >>= (liftIO . putStrLn))
-        --("undoAll", const $ lift $ (liftIO $ runInputT defaultSettings undoAllPrompt) >>= (\x -> if x then undoAll else liftIO (putStrLn "Aborting undo")))
+            _ -> statePath >>= \p -> cat (map (joinPath p . pathFromStr) as) >>= (liftIO . putStr))
     ]
-
-
--- | Currently not working because of calls to @commit@. May work in the future
-undoAllPrompt :: InputT IO Bool
-undoAllPrompt = do
-    x <- fromMaybe "n" <$> getInputLine "Really undo EVERY action from the current session (y/n)? "
-    return $ x`elem`["y","Y"]
 
 
 customCommand :: [String] -> Repl ()
@@ -136,9 +139,9 @@ cat ps = concat <$> mapM (cat') ps
         cat' p = do
             e <- getEntryAt p
             case e of
-                Just (Directory _) -> return $ printf "cat: %s: Is a directory" (pathToStr p)
+                Just (Directory _) -> return $ printfn "cat: %s: Is a directory" (pathToStr p)
                 Just (File _) -> BU.toString <$> lift ((mkEntrySelector (pathToStr p)) >>= getEntry)
-                Nothing -> return $ printf "cat: %s: No such file or directory" (pathToStr p)
+                Nothing -> return $ printfn "cat: %s: No such file or directory" (pathToStr p)
 
 cd :: Path -> Repl Bool
 cd p = do
@@ -159,7 +162,12 @@ ls p = nub . map (head . getSegments . entryPath) . directEntries <$> relativeEn
 
 
 usage :: IO ()
-usage = putStrLn "zipSH <filename>"
+usage = putStrLn $ unlines [
+        "usage: zipsh [flags] <archive>",
+        "",
+        "If <archive> does not exist, it will be created.",
+        "Fails if <archive> has a file extension that is not '*.zip'"
+    ]
 
 notEnoughArgs :: String -> Repl ()
 notEnoughArgs = liftIO . printfn "Not enough args in a call to '%s'"

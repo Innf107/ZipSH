@@ -3,7 +3,28 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: byline-1.0.0.0@sha256:ebfcd69a6e804979807cbd2b984ed33f6d65c4cd486c8007cde08483abead975,4991
+    pantry-tree:
+      size: 1271
+      sha256: bdc6faffd4bf45c39ae44132e6b2e1e5c5a2719463f05171917f7894b1719fcb
+  original:
+    hackage: byline-1.0.0.0@sha256:ebfcd69a6e804979807cbd2b984ed33f6d65c4cd486c8007cde08483abead975,4991
+- completed:
+    hackage: terminfo-hs-0.2.1.1@sha256:c193c5333a18ad030c146c2282dd3828e670af344fbfdbcb681dbf6abd99ca1c,1629
+    pantry-tree:
+      size: 602
+      sha256: 798e6dea1a4a006f2f3949dddb5bd3feb78e6347dd77c5ad97b2446b0060be82
+  original:
+    hackage: terminfo-hs-0.2.1.1@sha256:c193c5333a18ad030c146c2282dd3828e670af344fbfdbcb681dbf6abd99ca1c,1629
+- completed:
+    hackage: haskeline-0.8.0.0@sha256:0630452b759a5b40e0e3e7ca2ef4b0d55d5161d95e8d7b0dd3cf55888971437f,5440
+    pantry-tree:
+      size: 3013
+      sha256: 235d9b78cb87e21651fd36421c30ff4e0638e463fac7ec8b70887db06c3ff88f
+  original:
+    hackage: haskeline-0.8.0.0@sha256:0630452b759a5b40e0e3e7ca2ef4b0d55d5161d95e8d7b0dd3cf55888971437f,5440
 snapshots:
 - completed:
     size: 532379
