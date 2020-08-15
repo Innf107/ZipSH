@@ -1,4 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Types where
 
@@ -11,8 +14,14 @@ import qualified Data.Map as M
 import Lib
 import Data.Either as E
 import Data.Bifunctor
+import System.Console.Haskeline.MonadException
 
 type Repl a = StateT ReplState ZipArchive a
+
+instance MonadException (StateT ReplState ZipArchive) where
+    controlIO f = StateT $ \s -> controlIO $ \(RunIO run) -> let
+                    run' = RunIO (fmap (StateT . const) . run . flip runStateT s)
+                    in fmap (flip runStateT s) $ f run'
 
 data ReplState = ReplState {path::Path}
 defaultState = ReplState (Path [])
@@ -55,6 +64,8 @@ minimizePath (Path segs) = foldl joinPath (Path []) (map (Path . pure) segs)
 
 pathFromStr :: String -> Path
 pathFromStr "/" = Path $ [""]
+pathFromStr "~" = Path $ [""]
+pathFromStr ('~':ss) = pathFromStr (ss)
 pathFromStr s = Path $ dropWhileEnd (=="") $ splitOn "/" s
 
 relativePath :: Path -> Path -> Path
@@ -86,15 +97,15 @@ entriesFromPath (Path (x:xs)) = Directory (Path [x]) : (map (mapEntry (mapPath (
 
 
 --                                 Flag Arg Counts
-data Syntax = Syntax [SyntaxPart] [(String, Int)] ([Flag] -> [(String, Arg)] -> Repl ()) 
+data Syntax = Syntax [SyntaxPart] [(String, Int)] ([Flag] -> [(String, Arg)] -> Repl ())
 
 instance Show Syntax where
     show = showSyntax
 
-data SyntaxPart = SRequired SyntaxArg 
-                | SOptional SyntaxArg 
+data SyntaxPart = SRequired SyntaxArg
+                | SOptional SyntaxArg
                 deriving (Show, Eq)
-            
+
 data SyntaxArg = SLit String
                | SArg String
                | SFlags
@@ -103,10 +114,10 @@ data SyntaxArg = SLit String
 
 type Arg = String
 data Flag = Flag String [Arg]
-          deriving (Show, Eq) 
+          deriving (Show, Eq)
 
-data Command = Command {cmdInfo::String, cmdSyntax::[Syntax]} 
-    
+data Command = Command {cmdInfo::String, cmdSyntax::[Syntax]}
+
 --TODO: include function name
 instance Show Command where
     show (Command info syntax) = "usage: " ++ showSyntaxs syntax ++ "\n\n" ++ info
@@ -117,7 +128,7 @@ ls' = Command {
             Syntax [SRequired (SLit "ls"), SOptional (SFlags), SOptional (SArg "directory")] [("r", 0)] (\_ _ -> return ())
         ]
     }
-    
+
 testC = Command {
         cmdInfo="test",
         cmdSyntax = [
@@ -135,7 +146,7 @@ trySyntax (Syntax parts flagCounts f) args = do
         argsFlags <- parseArgs flagCounts args
         (flags, args) <- tryParts parts argsFlags
         return $ f flags args
-        
+
 tryParts :: [SyntaxPart] -> [Either Arg Flag] -> Maybe ([Flag], [(String, Arg)])
 tryParts [] [] = Just ([], [])
 tryParts [] _ = Nothing
@@ -151,7 +162,7 @@ tryParts (p:ps) (a:as) = case p of
     SRequired (SFlags) ->    undefined
     SRequired (SFlag f) ->   case a of
         Left _ -> Nothing
-        Right flag@(Flag y _) -> guard (f==y) >> first (flag:) <$> tryParts ps as  
+        Right flag@(Flag y _) -> guard (f==y) >> first (flag:) <$> tryParts ps as
 
 
 parseArgs :: ([(String, Int)]) -> [String] -> Maybe [Either Arg Flag]
@@ -164,7 +175,7 @@ parseArgs validFlags (a:as) = case a of
                         flagArgs <- E.lefts <$> parseArgs [] fas
                         ((Right (Flag a' flagArgs)):) <$> parseArgs validFlags' as'
                 ('-':a') -> parseArgs validFlags (map (("--"++) . pure) a' ++ as)
-                a' -> ((Left a'):) <$> parseArgs validFlags as             
+                a' -> ((Left a'):) <$> parseArgs validFlags as
 
 showSyntaxs :: [Syntax] -> String
 showSyntaxs ss = intercalate " | " (map showSyntax ss)

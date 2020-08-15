@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: dc7366913a1b60e24dac02cdf04e2f31878ca6b97f94778e1bf712a7123c95eb
+-- hash: 82d286c545613adb60bbe3e9fb3c83500deb11d907c0da95ead82c824598fabf
 
 name:           ZipSH
 version:        0.1.0.0
@@ -27,6 +27,11 @@ source-repository head
 
 library
   exposed-modules:
+      Codec.Archive.Zip
+      Codec.Archive.Zip.CP437
+      Codec.Archive.Zip.Internal
+      Codec.Archive.Zip.Type
+      Codec.Archive.Zip.Unix
       Lib
   other-modules:
       Paths_ZipSH
@@ -36,14 +41,28 @@ library
       ansi-escape-codes
     , base >=4.7 && <5
     , bytestring
+    , case-insensitive
+    , cereal
+    , conduit
+    , conduit-extra
     , containers
+    , digest
     , directory
+    , dlist
+    , exceptions
+    , extra
+    , filepath
     , haskeline
+    , monad-control
     , mtl
     , process
+    , resourcet
     , split
+    , text
+    , time
+    , transformers
+    , transformers-base
     , utf8-string
-    , zip
   default-language: Haskell2010
 
 executable zipsh
@@ -59,14 +78,28 @@ executable zipsh
     , ansi-escape-codes
     , base >=4.7 && <5
     , bytestring
+    , case-insensitive
+    , cereal
+    , conduit
+    , conduit-extra
     , containers
+    , digest
     , directory
+    , dlist
+    , exceptions
+    , extra
+    , filepath
     , haskeline
+    , monad-control
     , mtl
     , process
+    , resourcet
     , split
+    , text
+    , time
+    , transformers
+    , transformers-base
     , utf8-string
-    , zip
   default-language: Haskell2010
 
 test-suite ZipSH-test
@@ -82,12 +115,26 @@ test-suite ZipSH-test
     , ansi-escape-codes
     , base >=4.7 && <5
     , bytestring
+    , case-insensitive
+    , cereal
+    , conduit
+    , conduit-extra
     , containers
+    , digest
     , directory
+    , dlist
+    , exceptions
+    , extra
+    , filepath
     , haskeline
+    , monad-control
     , mtl
     , process
+    , resourcet
     , split
+    , text
+    , time
+    , transformers
+    , transformers-base
     , utf8-string
-    , zip
   default-language: Haskell2010

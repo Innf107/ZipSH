@@ -3,9 +3,7 @@
     - IE: `zipSH myarchive.zip/mydir1/mydir2`
 * Abort if zip file name has a file extension that is not `*.zip` 
     or is a directory
-* History
 * Auto Completion
-    - files in archive
     - auto completion for default commands
 * Config File
     - prompt

@@ -1,6 +1,6 @@
 module Lib where
 
-import Codec.Archive.Zip as Z 
+import Codec.Archive.Zip as Z
 import Data.Maybe
 import Data.List
 import Text.Printf

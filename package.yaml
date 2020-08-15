@@ -21,9 +21,7 @@ description:         Please see the README on GitHub at <https://github.com/Innf
 
 dependencies:
 - base >= 4.7 && < 5
-- zip
 - directory
-- haskeline
 - bytestring
 - containers
 - mtl
@@ -31,9 +29,26 @@ dependencies:
 - utf8-string
 - process
 - ansi-escape-codes
+- transformers
+- exceptions
+- filepath
+- haskeline
+- text
+- time
+- case-insensitive
+- cereal
+- digest
+- conduit
+- conduit-extra
+- resourcet
+- dlist
+- monad-control
+- transformers-base
+- extra
 
 library:
-  source-dirs: src
+  source-dirs:
+  - src
 
 executables:
   zipsh:

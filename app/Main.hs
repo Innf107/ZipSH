@@ -15,6 +15,7 @@ import Control.Monad.State
 import Text.Printf
 import Data.List
 import Data.List.Split
+import Data.List.Extra as E
 import qualified Data.ByteString.UTF8 as BU
 import Types
 import System.Process as P
@@ -39,15 +40,30 @@ repl :: String -> Repl ()
 repl fname = do
     pwd <- statePath
     historyFile <- liftIO $ (++ "/.zipSHHistory") <$> getHomeDirectory
-    cmd <- liftIO $ runInputT defaultSettings {historyFile = Just historyFile} $ getCmd fname (pathToStr pwd)
+    cmd <- runInputT (setComplete completion defaultSettings {historyFile = Just historyFile}) $ getCmd fname (pathToStr pwd)
     case cmd of
         "exit" -> return ()
         _ -> do
             when (not $ null $ words cmd) $ runCmd cmd
             repl fname
 
-getCmd :: String -> String -> InputT IO String
-getCmd zipName pwd = withInterrupt (fmap (fromMaybe "exit") $ getInputLine $ printf "\x001b[32;1m[%s]\x001b[0m:\x001b[34;1m%s/\x001b[0m$ " zipName pwd) `catch` (\Interrupt -> return "")
+completion :: CompletionFunc (StateT ReplState ZipArchive)
+completion = completeWord Nothing " \t\n" f
+    where
+        f :: String -> Repl [Completion]
+        f l = do
+            p <- statePath
+            let l' = takeWhileEnd (/='/') l
+            let p' = p <> (pathFromStr (dropWhileEnd (/='/') l))
+            es <- ls p'
+            return $ map (simpleCompletion . (l++)) $ catMaybes $ map (stripPrefix l') es
+
+-- p' = p <> pathFromStr "test"
+-- test/te
+
+
+getCmd :: String -> String -> InputT (StateT ReplState ZipArchive) String
+getCmd zipName pwd = withInterrupt (fmap (fromMaybe "exit") $ getInputLine $ printf "\x1b[32;1m[%s]\x1b[0m:\x001b[34;1m~%s\x1b[0m$ " zipName (if null pwd then "" else "/" ++ pwd)) `catch` (\Interrupt -> return "")
 
 runCmd :: String -> Repl ()
 runCmd cmd = do
@@ -69,16 +85,8 @@ cmds = M.fromList [
             _ -> tooManyArgs "cd"),
         ("cat", \as -> case as of
             [] -> notEnoughArgs "cat"
-            _ -> statePath >>= \p -> cat (map (joinPath p . pathFromStr) as) >>= (liftIO . putStrLn))
-        --("undoAll", const $ lift $ (liftIO $ runInputT defaultSettings undoAllPrompt) >>= (\x -> if x then undoAll else liftIO (putStrLn "Aborting undo")))
+            _ -> statePath >>= \p -> cat (map (joinPath p . pathFromStr) as) >>= (liftIO . putStr))
     ]
-
-
--- | Currently not working because of calls to @commit@. May work in the future
-undoAllPrompt :: InputT IO Bool
-undoAllPrompt = do
-    x <- fromMaybe "n" <$> getInputLine "Really undo EVERY action from the current session (y/n)? "
-    return $ x`elem`["y","Y"]
 
 
 customCommand :: [String] -> Repl ()
