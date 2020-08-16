@@ -106,6 +106,9 @@ data SyntaxPart = SRequired SyntaxArg
                 | SOptional SyntaxArg
                 deriving (Show, Eq)
 
+isOptional (SOptional _) = True
+isOptional _ = False
+
 data SyntaxArg = SLit String
                | SArg String
                | SFlags
@@ -122,24 +125,9 @@ data Command = Command {cmdInfo::String, cmdSyntax::[Syntax]}
 instance Show Command where
     show (Command info syntax) = "usage: " ++ showSyntaxs syntax ++ "\n\n" ++ info
 
-ls' = Command {
-        cmdInfo="lists the contents of a directory",
-        cmdSyntax = [
-            Syntax [SRequired (SLit "ls"), SOptional (SFlags), SOptional (SArg "directory")] [("r", 0)] (\_ _ -> return ())
-        ]
-    }
-
-testC = Command {
-        cmdInfo="test",
-        cmdSyntax = [
-            Syntax [SRequired (SLit "Test")] [] (\_ _ -> return ())
-        ]
-    }
-
 command :: Command -> [String] -> Repl ()
-command (cmd@(Command {cmdInfo, cmdSyntax})) args = head $ (catMaybes $ map (`trySyntax`args) (cmdSyntax)) ++ [help cmd]
-    where
-        help = liftIO . putStrLn . show
+command (cmd@(Command {cmdInfo, cmdSyntax})) args = head $ (catMaybes $ map (`trySyntax`args) (cmdSyntax)) ++ [liftIO $ putStrLn $ show cmd]
+
 
 trySyntax :: Syntax -> [String] -> Maybe (Repl ())
 trySyntax (Syntax parts flagCounts f) args = do
@@ -150,16 +138,29 @@ trySyntax (Syntax parts flagCounts f) args = do
 tryParts :: [SyntaxPart] -> [Either Arg Flag] -> Maybe ([Flag], [(String, Arg)])
 tryParts [] [] = Just ([], [])
 tryParts [] _ = Nothing
-tryParts _ [] = Nothing
+tryParts sps [] 
+    | all isOptional sps = Just ([], []) 
+    | otherwise = Nothing
 tryParts (p:ps) (a:as) = case p of
-    SOptional x ->           undefined
+    SOptional (SLit x) -> tryParts ps as
+    SOptional (SArg x) -> case a of
+        Right _ -> tryParts ps (a:as)
+        Left y -> second ((x,y):) <$> tryParts ps as
+    SOptional (SFlag f) -> case a of
+        Left _ -> tryParts ps as
+        Right flag@(Flag y _)
+            | f == y -> first (flag:) <$> tryParts ps as
+            | otherwise -> tryParts ps (a:as)
+    SOptional SFlags -> case a of
+        Left _ -> tryParts ps (a:as)
+        Right flag@(Flag y _) -> first (flag:) <$> tryParts (p:ps) as
     SRequired (SLit x) -> case a of
         Right _ -> Nothing
         Left y -> guard (x == y) >> tryParts ps as
     SRequired (SArg x) -> case a of
         Right _ -> Nothing
         Left y -> second ((x,y):) <$> tryParts ps as
-    SRequired (SFlags) ->    undefined
+    SRequired (SFlags) -> tryParts (SOptional SFlags:ps) (a:as)
     SRequired (SFlag f) ->   case a of
         Left _ -> Nothing
         Right flag@(Flag y _) -> guard (f==y) >> first (flag:) <$> tryParts ps as

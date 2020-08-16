@@ -63,7 +63,9 @@ completion = completeWord Nothing " \t\n" f
 
 
 getCmd :: String -> String -> InputT (StateT ReplState ZipArchive) String
-getCmd zipName pwd = withInterrupt (fmap (fromMaybe "exit") $ getInputLine $ printf "\x1b[32;1m[%s]\x1b[0m:\x001b[34;1m~%s\x1b[0m$ " zipName (if null pwd then "" else "/" ++ pwd)) `catch` (\Interrupt -> return "")
+getCmd zipName pwd = do
+    u <- liftIO $ getEnv "USER"
+    withInterrupt (fmap (fromMaybe "exit") $ getInputLine $ printf "\x1b[32;1m%s@[%s]\x1b[0m:\x001b[34;1m~%s\x1b[0m$ " u zipName (if null pwd then "" else "/" ++ pwd)) `catch` (\Interrupt -> return "")
 
 runCmd :: String -> Repl ()
 runCmd cmd = do
@@ -74,10 +76,11 @@ runCmd cmd = do
 
 cmds :: M.Map String ([String] -> Repl ())
 cmds = M.fromList [
-        ("ls", \as -> case as of
-            [] -> statePath >>= ls >>= (liftIO .  putStrLn . unwords)
-            [x] -> statePath >>= (\p -> ls (p `joinPath` pathFromStr x)) >>= (liftIO .  putStrLn . unwords)
-            _ -> tooManyArgs "ls"),
+        ("ls", command ls'),
+        --("ls", \as -> case as of
+        --    [] -> statePath >>= ls >>= (liftIO .  putStrLn . unwords)
+        --    [x] -> statePath >>= (\p -> ls (p `joinPath` pathFromStr x)) >>= (liftIO .  putStrLn . unwords)
+        --    _ -> tooManyArgs "ls"),
         ("pwd", const $ pwd >>= (liftIO .  putStrLn . pathToStr)),
         ("cd", \as -> case as of
             [] -> cd (Path []) >> return ()
@@ -87,6 +90,25 @@ cmds = M.fromList [
             [] -> notEnoughArgs "cat"
             _ -> statePath >>= \p -> cat (map (joinPath p . pathFromStr) as) >>= (liftIO . putStr))
     ]
+
+ls' = Command {
+        cmdInfo="lists the contents of a directory",
+        cmdSyntax = [
+            Syntax [SOptional (SFlags), SOptional (SArg "directory")] [("a",0),("A",0)] (\fs as -> do
+                let dir = lookup "directory" as
+                sp <- statePath
+                let p = sp <> pathFromStr (fromMaybe "" dir)
+                res <- nub . map (head . getSegments . entryPath) . directEntries <$> relativeEntries p
+                case res of
+                    [] -> liftIO $ printfn "ls: cannot access '%s': No such file or directory" (pathToStr p) 
+                    _ -> liftIO $ putStrLn $ unwords res
+                )
+        ]
+    }
+
+--TODO: Error message if directory does not exist
+ls :: Path -> Repl [String]
+ls p = nub . map (head . getSegments . entryPath) . directEntries <$> relativeEntries p
 
 
 customCommand :: [String] -> Repl ()
@@ -145,9 +167,9 @@ cat ps = concat <$> mapM (cat') ps
         cat' p = do
             e <- getEntryAt p
             case e of
-                Just (Directory _) -> return $ printf "cat: %s: Is a directory" (pathToStr p)
+                Just (Directory _) -> return $ printf "cat: %s: Is a directory\n" (pathToStr p)
                 Just (File _) -> BU.toString <$> lift ((mkEntrySelector (pathToStr p)) >>= getEntry)
-                Nothing -> return $ printf "cat: %s: No such file or directory" (pathToStr p)
+                Nothing -> return $ printf "cat: %s: No such file or directory\n" (pathToStr p)
 
 cd :: Path -> Repl Bool
 cd p = do
@@ -161,11 +183,6 @@ cd p = do
 
 pwd :: Repl Path
 pwd = statePath
-
---TODO: Error message if directory does not exist
-ls :: Path -> Repl [String]
-ls p = nub . map (head . getSegments . entryPath) . directEntries <$> relativeEntries p
-
 
 usage :: IO ()
 usage = putStrLn "zipSH <filename>"

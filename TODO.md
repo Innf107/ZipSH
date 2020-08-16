@@ -9,10 +9,7 @@
     - prompt
     - history length
     - color configuration 
-* Generic abstraction for custom commands
-    - flags
 * `ls`
-    - Error message if directory does not exist
     - default behaviour for files
     - Hide files starting with `.` unless invoked with `-a` or `-A`
 * usage
