@@ -12,11 +12,11 @@ Anything else is going to be executed as a regular shell command. Arguments pref
 
 Example: You want to edit a file called `myfile.hs` inside some zip file. You can just use vim *almost* as you would when editing any regular file:
 ```
-[myarchive.zip]:/$ ls
+prophet@[myarchive.zip]:~$ ls
 myfile.hs
-[myarchive.zip]:/$ cat myfile.hs
+prophet@[myarchive.zip]:~$ cat myfile.hs
 main = putStrLn "Hello, World!"
-[myarchive.zip]:/$ vim §myfile.hs
+prophet@[myarchive.zip]:~$ vim §myfile.hs
 ```
 
 **NOTE:** Empty Directories inside archives are not supported, since Haskell's `zip` library, which this project uses, does not support them either 
